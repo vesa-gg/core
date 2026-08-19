@@ -1,0 +1,40 @@
+name: Pull request bump version
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      increment-type:
+        description: 'How to increment the version'
+        required: true
+        default: 'bugfix'
+        type: choice
+        options:
+          - bugfix
+          - feature
+          - major
+
+jobs:
+  version-bump:
+    name: "Bump version"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          sparse-checkout: |
+            package.json
+            package-lock.json
+            scripts
+          sparse-checkout-cone-mode: false
+      - uses: qoomon/actions--setup-git@629bce2505e7d866b48860371f16f333e62801b8
+        with:
+          user: bot
+      - name : Bump version
+        env:
+          TITLE: ${{ inputs.increment-type || github.event.pull_request.title }}
+        run: |
+          npm run bump-version $TITLE
+          git push

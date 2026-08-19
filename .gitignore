@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.idea/
+
+# Nhost local dev runtime (Docker data, certs) — not part of the tracked project
+nhost/.nhost/
+nhost/.secrets
+nhost/functions/node_modules/
+
+.DS_Store

@@ -1,0 +1,42 @@
+name: 'Release'
+
+# Unlike scrim-bot's push.yml (which drafts a release purely for changelog purposes —
+# Heroku deploys from `main` directly, not from a tag), this package is consumed by
+# scrim-bot and VESAWeb as a `github:vesa-gg/core#vX.Y.Z` dependency. The tag itself
+# IS the release artifact, so:
+#   - build + test run before tagging, so a broken commit never gets tagged
+#   - the release is published immediately (not left as a draft), since a draft
+#     release does not push a real git tag, and consumers can't install against it
+#     until one exists.
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  release:
+    name: 'Release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout source code'
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
+      - name: 'get version from package.json'
+        id: package_version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+      - name: "Create release"
+        uses: softprops/action-gh-release@v2
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag_name: ${{ steps.package_version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
