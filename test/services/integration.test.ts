@@ -1,7 +1,6 @@
 import { SignupService } from "../../src/services/signups";
 import { DbMock } from "../mocks/db.mock";
 import { PlayerInsert } from "../../src/models/Player";
-import { User } from "discord.js";
 
 describe("Integration", () => {
   it("Should use this fake test case to run integration tests when they are commented out", async () => {
@@ -10,9 +9,9 @@ describe("Integration", () => {
   /*
   describe("addTeam()", () => {
     it("Should add a team", async () => {
-      const theheuman = {id: "315310843317321732", displayName: "TheHeuman"} as User
-      const zboy = {id: "316280734115430403", displayName: "Zboy"} as User
-      const supreme = {id: "244307424838811648", displayName: "Supreme"} as User
+      const theheuman = {id: "315310843317321732", displayName: "TheHeuman"}
+      const zboy = {id: "316280734115430403", displayName: "Zboy"}
+      const supreme = {id: "244307424838811648", displayName: "Supreme"}
       const expectedSignup = {teamName: "Fineapples", scrimId: "ebb385a2-ba18-43b7-b0a3-44f2ff5589b9"}
 
       signups.activeScrimSignups.set("ebb385a2-ba18-43b7-b0a3-44f2ff5589b9", [])
@@ -32,9 +31,9 @@ describe("Integration", () => {
 
     it("Should add another team", async () => {
 
-      const theheuman = {id: "123", displayName: "Revy"} as User
-      const zboy = {id: "7456", displayName: "Treazy"} as User
-      const supreme = {id: "08576", displayName: "Toasty"} as User
+      const theheuman = {id: "123", displayName: "Revy"}
+      const zboy = {id: "7456", displayName: "Treazy"}
+      const supreme = {id: "08576", displayName: "Toasty"}
       const expectedSignup = {teamName: "Test Team", scrimId: "ebb385a2-ba18-43b7-b0a3-44f2ff5589b9"}
 
       signups.activeScrimSignups.set("ebb385a2-ba18-43b7-b0a3-44f2ff5589b9", [])
@@ -51,8 +50,8 @@ describe("Integration", () => {
   })
 
   it("Should replace a team mate", async () => {
-    const revy = {id: "123", displayName: "Revy"} as User
-    const mikey = {id: "not valid", displayName: "Mikey"} as User
+    const revy = {id: "123", displayName: "Revy"}
+    const mikey = {id: "not valid", displayName: "Mikey"}
     const scrimSignup = await signups.replaceTeammate("something", "Test Team", revy, mikey)
     console.log(scrimSignup)
     expect(scrimSignup).toBeDefined()

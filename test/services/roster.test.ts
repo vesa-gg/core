@@ -1,15 +1,14 @@
 import { DbMock } from "../mocks/db.mock";
 import { Player } from "../../src/models/Player";
-import { GuildMember, User } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
+import { AlertSink, ScrimNotifier } from "../../src/types/notifications";
 import { RosterService } from "../../src/services/rosters";
 import { ScrimType, Scrim, ScrimSignup } from "../../src/models/Scrims";
 import { AuthService } from "../../src/services/auth";
-import { DiscordService } from "../../src/services/discord";
 import { BanService } from "../../src/services/ban";
 import { StaticValueService } from "../../src/services/static-values";
 import { ScrimService } from "../../src/services/scrim-service";
 import { SignupService } from "../../src/services/signups";
-import { AlertService } from "../../src/services/alert";
 import { provideMagickalMock } from "../mocks/magickal-mock";
 
 describe("Rosters", () => {
@@ -20,7 +19,15 @@ describe("Rosters", () => {
   let staticValueService: StaticValueService;
   let scrimServiceMock: ScrimService;
   let signupServiceMock: SignupService;
+  let discordServiceMock: jest.Mocked<ScrimNotifier>;
+  let alertServiceMock: jest.Mocked<AlertSink>;
   const discordChannel = "034528";
+
+  // Every call site below previously passed a live discord.js GuildMember;
+  // RosterService only ever forwards the role ids to AuthService.memberIsAdmin,
+  // whose mock (below) is stubbed by return value per-test, so the actual
+  // contents of this array don't drive test behavior.
+  const roleIds: string[] = [];
 
   beforeEach(() => {
     dbMock = new DbMock();
@@ -49,15 +56,26 @@ describe("Rosters", () => {
       });
     scrimServiceMock = provideMagickalMock(ScrimService);
     signupServiceMock = provideMagickalMock(SignupService);
+    // DiscordService/AlertService are concrete, Discord-Client-coupled
+    // classes that stay in scrim-bot. RosterService only depends on the
+    // ScrimNotifier/AlertSink interfaces they implement.
+    discordServiceMock = {
+      updateSignupPostDescription: jest.fn(),
+      sendScoresComputedMessage: jest.fn(),
+    };
+    alertServiceMock = {
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
     rosters = new RosterService(
       dbMock,
       authService,
-      provideMagickalMock(DiscordService),
+      discordServiceMock,
       banServiceMock,
       staticValueService,
       scrimServiceMock,
       signupServiceMock,
-      provideMagickalMock(AlertService),
+      alertServiceMock,
     );
     jest
       .spyOn(authService, "memberIsAdmin")
@@ -73,19 +91,24 @@ describe("Rosters", () => {
       .mockReturnValue(Promise.resolve([]));
   });
 
-  const zboy: { user: User; member: GuildMember; player: Player } = {
-    user: { id: "0", displayName: "Zboy" } as User,
-    member: { id: "0" } as GuildMember,
-    player: {
-      discordId: "0",
-      id: "1987254",
-      displayName: "Zboy",
-      overstatId: "1234",
-    },
-  };
-  const theheuman: { user: User; member: GuildMember; player: Player } = {
-    user: { id: "1", displayName: "TheHeuman" } as User,
-    member: { id: "1" } as GuildMember,
+  const zboy: { user: DiscordUserRef; member: DiscordUserRef; player: Player } =
+    {
+      user: { id: "0", displayName: "Zboy" },
+      member: { id: "0", displayName: "Zboy" },
+      player: {
+        discordId: "0",
+        id: "1987254",
+        displayName: "Zboy",
+        overstatId: "1234",
+      },
+    };
+  const theheuman: {
+    user: DiscordUserRef;
+    member: DiscordUserRef;
+    player: Player;
+  } = {
+    user: { id: "1", displayName: "TheHeuman" },
+    member: { id: "1", displayName: "TheHeuman" },
     player: { discordId: "1", id: "123", displayName: "TheHeuman" },
   };
 
@@ -129,6 +152,7 @@ describe("Rosters", () => {
       const dbSpy = jest.spyOn(dbMock, "removeScrimSignup");
       await rosters.removeSignup(
         zboy.member,
+        roleIds,
         discordChannel,
         getFineapples().teamName,
       );
@@ -146,6 +170,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.removeSignup(
           zboy.member,
+          roleIds,
           "034528",
           getFineapples().teamName,
         );
@@ -174,6 +199,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.removeSignup(
           zboy.member,
+          roleIds,
           discordChannel,
           "random other name",
         );
@@ -211,6 +237,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.removeSignup(
           zboy.member,
+          roleIds,
           discordChannel,
           differentFineapples.teamName,
         );
@@ -244,6 +271,7 @@ describe("Rosters", () => {
 
       await rosters.changeTeamName(
         zboy.member,
+        roleIds,
         discordChannel,
         fineapples.teamName,
         "Dude Cube",
@@ -277,6 +305,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.changeTeamName(
           zboy.member,
+          roleIds,
           discordChannel,
           fineapples.teamName,
           dudeCube.teamName,
@@ -320,6 +349,7 @@ describe("Rosters", () => {
 
       await rosters.replaceTeammate(
         theheuman.member,
+        roleIds,
         discordChannel,
         dudeCube.teamName,
         theheuman.user,
@@ -363,6 +393,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.replaceTeammate(
           theheuman.member,
+          roleIds,
           discordChannel,
           getFineapples().teamName,
           theheuman.user,
@@ -404,6 +435,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.replaceTeammate(
           theheuman.member,
+          roleIds,
           discordChannel,
           dudeCube.teamName,
           zboy.user,
@@ -448,6 +480,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.replaceTeammate(
           theheuman.member,
+          roleIds,
           discordChannel,
           dudeCube.teamName,
           zboy.user,
@@ -499,6 +532,7 @@ describe("Rosters", () => {
 
       await rosters.replaceTeammate(
         theheuman.member,
+        roleIds,
         discordChannel,
         dudeCube.teamName,
         zboy.user,
@@ -547,6 +581,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.replaceTeammate(
           theheuman.member,
+          roleIds,
           discordChannel,
           dudeCube.teamName,
           theheuman.user,
@@ -600,6 +635,7 @@ describe("Rosters", () => {
       const causeException = async () => {
         await rosters.replaceTeammate(
           theheuman.member,
+          roleIds,
           discordChannel,
           dudeCube.teamName,
           theheuman.user,

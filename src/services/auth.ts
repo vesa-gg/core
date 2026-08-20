@@ -1,5 +1,4 @@
 import { DB } from "../db/db";
-import { GuildMember } from "discord.js";
 import { DiscordRole } from "../models/Role";
 
 export class AuthService {
@@ -11,10 +10,16 @@ export class AuthService {
     });
   }
 
-  async memberIsAdmin(member: GuildMember): Promise<boolean> {
-    const memberRoleIds = member.roles.cache.map((role) => role.id);
+  /**
+   * @param roleIds Discord role IDs held by the caller. scrim-bot derives this
+   * from a live `GuildMember` (`member.roles.cache.map(r => r.id)`); any future
+   * caller without a live gateway connection (e.g. a server-side action
+   * triggered from VESAWeb) resolves it however it can — a Discord REST lookup
+   * using a bot token, for instance — and passes the plain array in here.
+   */
+  async memberIsAdmin(roleIds: string[]): Promise<boolean> {
     const adminRoleSet = await this.getAdminRoleMap();
-    return this.hasAdminRole(memberRoleIds, adminRoleSet);
+    return this.hasAdminRole(roleIds, adminRoleSet);
   }
 
   async addAdminRoles(roles: DiscordRole[]): Promise<string[]> {

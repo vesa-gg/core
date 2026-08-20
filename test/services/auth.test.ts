@@ -1,4 +1,3 @@
-import { GuildMember } from "discord.js";
 import { AuthService } from "../../src/services/auth";
 import { DbMock } from "../mocks/db.mock";
 import SpyInstance = jest.SpyInstance;
@@ -19,21 +18,20 @@ describe("Auth", () => {
   });
 
   describe("memberIsAdmin", () => {
-    const member: GuildMember = {
-      roles: {
-        cache: [{ id: "non admin role" }],
-      },
-    } as unknown as GuildMember;
+    let roleIds: string[];
+
+    beforeEach(() => {
+      roleIds = ["non admin role"];
+    });
 
     it("Should return false when there are no admin roles", async () => {
-      const isAdmin = await service.memberIsAdmin(member);
+      const isAdmin = await service.memberIsAdmin(roleIds);
       expect(isAdmin).toEqual(false);
     });
 
     it("Should return false when member has no role", async () => {
-      // @ts-expect-error cache is read only, in our test case it is not read only
-      member.roles.cache = [];
-      const isAdmin = await service.memberIsAdmin(member);
+      roleIds = [];
+      const isAdmin = await service.memberIsAdmin(roleIds);
       expect(isAdmin).toEqual(false);
     });
 
@@ -43,7 +41,7 @@ describe("Auth", () => {
           { discordRoleId: "admin role", roleName: "VESA Admin" },
         ]),
       );
-      const isAdmin = await service.memberIsAdmin(member);
+      const isAdmin = await service.memberIsAdmin(roleIds);
       expect(isAdmin).toEqual(false);
     });
 
@@ -53,17 +51,15 @@ describe("Auth", () => {
           { discordRoleId: "admin role", roleName: "VESA Admin" },
         ]),
       );
-      // @ts-expect-error cache is read only, in our test case it is not read only
-      member.roles.cache.push({ id: "admin role" });
-      const isAdmin = await service.memberIsAdmin(member);
+      roleIds.push("admin role");
+      const isAdmin = await service.memberIsAdmin(roleIds);
       expect(isAdmin).toEqual(true);
     });
 
     it("Should return false when no admin roles in db", async () => {
       dbAdminRolesSpy.mockReturnValueOnce(Promise.resolve([]));
-      // @ts-expect-error cache is read only, in our test case it is not read only
-      member.roles.cache.push({ id: "admin role" });
-      const isAdmin = await service.memberIsAdmin(member);
+      roleIds.push("admin role");
+      const isAdmin = await service.memberIsAdmin(roleIds);
       expect(isAdmin).toEqual(false);
     });
   });

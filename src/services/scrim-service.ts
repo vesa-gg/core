@@ -2,14 +2,14 @@ import { DB } from "../db/db";
 import { OverstatService } from "./overstat";
 import { HuggingFaceService } from "./hugging-face";
 import { ScrimType, Scrim } from "../models/Scrims";
-import { AlertService } from "./alert";
+import { AlertSink } from "../types/notifications";
 
 export class ScrimService {
   constructor(
     private db: DB,
     private overstatService: OverstatService,
     private huggingFaceService: HuggingFaceService,
-    private alertService: AlertService,
+    private alertService: AlertSink,
   ) {}
 
   async createScrim(

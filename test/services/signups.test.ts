@@ -1,33 +1,17 @@
 import { SignupService } from "../../src/services/signups";
 import { DbMock } from "../mocks/db.mock";
 import { Player } from "../../src/models/Player";
-import {
-  GuildMember,
-  InteractionReplyOptions,
-  InteractionResponse,
-  MessagePayload,
-  User,
-} from "discord.js";
-import { ScrimType, Scrim, ScrimSignup } from "../../src/models/Scrims";
-import { OverstatTournamentResponse } from "../../src/models/overstatModels";
+import { DiscordUserRef } from "../../src/types/discord-ref";
+import { AlertSink, ScrimNotifier } from "../../src/types/notifications";
+import { ScrimType, ScrimSignup } from "../../src/models/Scrims";
 import { PrioService } from "../../src/services/prio";
 import { ScrimSignupsWithPlayers } from "../../src/db/table.interfaces";
 import SpyInstance = jest.SpyInstance;
 import { AuthService } from "../../src/services/auth";
-import { DiscordService } from "../../src/services/discord";
 import { BanService } from "../../src/services/ban";
 import { ScrimService } from "../../src/services/scrim-service";
-import { AlertService } from "../../src/services/alert";
 import { StaticValueService } from "../../src/services/static-values";
 import { provideMagickalMock } from "../mocks/magickal-mock";
-
-jest.mock("../../src/config", () => {
-  return {
-    appConfig: {
-      lobbySize: 3,
-    },
-  };
-});
 
 describe("Signups", () => {
   let dbMock: DbMock;
@@ -37,8 +21,20 @@ describe("Signups", () => {
   let mockBanService: BanService;
   let scrimServiceMock: ScrimService;
   let staticValueServiceMock: StaticValueService;
+  let discordServiceMock: jest.Mocked<ScrimNotifier>;
+  let alertServiceMock: jest.Mocked<AlertSink>;
   const correctDiscordChannelId = "a forum post";
   const correctScrimId = "32451";
+  // was appConfig.lobbySize before the move to this package; now injected
+  // directly by whoever constructs SignupService.
+  const lobbySize = 3;
+
+  // AuthService no longer takes a Discord member object — it takes the
+  // caller's role ids. These two fixtures stand in for "the roles that
+  // happen to include VESA's admin role" and "no admin role", replacing the
+  // old `member === theheuman` identity check.
+  const adminRoleIds = ["admin-role"];
+  const nonAdminRoleIds: string[] = [];
 
   let insertPlayersSpy: SpyInstance;
 
@@ -49,6 +45,18 @@ describe("Signups", () => {
     authServiceMock = provideMagickalMock(AuthService);
     scrimServiceMock = provideMagickalMock(ScrimService);
     staticValueServiceMock = provideMagickalMock(StaticValueService);
+    // DiscordService/AlertService are concrete, Discord-Client-coupled
+    // classes that stay in scrim-bot. SignupService only depends on the
+    // ScrimNotifier/AlertSink interfaces they implement, so here we can mock
+    // those interfaces directly instead of pulling in discord.js.
+    discordServiceMock = {
+      updateSignupPostDescription: jest.fn(),
+      sendScoresComputedMessage: jest.fn(),
+    };
+    alertServiceMock = {
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
     jest
       .spyOn(staticValueServiceMock, "requireOverstatForSignup")
       .mockResolvedValue(true);
@@ -56,11 +64,12 @@ describe("Signups", () => {
       dbMock,
       prioServiceMock,
       authServiceMock,
-      provideMagickalMock(DiscordService),
+      discordServiceMock,
       mockBanService,
       scrimServiceMock,
-      provideMagickalMock(AlertService),
+      alertServiceMock,
       staticValueServiceMock,
+      lobbySize,
     );
     jest
       .spyOn(mockBanService, "teamHasBan")
@@ -90,8 +99,8 @@ describe("Signups", () => {
     );
     jest
       .spyOn(authServiceMock, "memberIsAdmin")
-      .mockImplementation((member) =>
-        Promise.resolve(member === (theheuman as unknown as GuildMember)),
+      .mockImplementation((roleIds: string[]) =>
+        Promise.resolve(roleIds.includes("admin-role")),
       );
 
     jest.spyOn(scrimServiceMock, "getScrim").mockReturnValue(
@@ -105,12 +114,12 @@ describe("Signups", () => {
     );
   });
 
-  const theheuman = { id: "123", displayName: "TheHeuman" } as User;
-  const zboy = { id: "456", displayName: "Zboy" } as User;
-  const supreme = { id: "789", displayName: "Supreme" } as User;
-  const revy = { id: "4368", displayName: "revy2hands" } as User;
-  const cTreazy = { id: "452386", displayName: "treazy" } as User;
-  const mikey = { id: "32576", displayName: "//baev" } as User;
+  const theheuman: DiscordUserRef = { id: "123", displayName: "TheHeuman" };
+  const zboy: DiscordUserRef = { id: "456", displayName: "Zboy" };
+  const supreme: DiscordUserRef = { id: "789", displayName: "Supreme" };
+  const revy: DiscordUserRef = { id: "4368", displayName: "revy2hands" };
+  const cTreazy: DiscordUserRef = { id: "452386", displayName: "treazy" };
+  const mikey: DiscordUserRef = { id: "32576", displayName: "//baev" };
 
   describe("addTeam()", () => {
     let getScrimSignupsWithPlayersSpy: SpyInstance<
@@ -159,7 +168,8 @@ describe("Signups", () => {
       const actualScrimSignup = await signups.addTeam(
         expectedSignup.discordChannelId,
         expectedSignup.teamName,
-        theheuman as unknown as GuildMember,
+        theheuman,
+        adminRoleIds,
         [theheuman, zboy, supreme],
       );
       const expectedReturnSignup: ScrimSignup = {
@@ -207,7 +217,7 @@ describe("Signups", () => {
         .spyOn(scrimServiceMock, "getScrim")
         .mockReturnValueOnce(Promise.resolve(null));
       const causeException = async () => {
-        await signups.addTeam("", "", theheuman as unknown as GuildMember, []);
+        await signups.addTeam("", "", theheuman, adminRoleIds, []);
       };
 
       await expect(causeException).rejects.toThrow(
@@ -254,7 +264,8 @@ describe("Signups", () => {
         await signups.addTeam(
           expectedSignup.discordChannelId,
           "Fineapples",
-          theheuman as unknown as GuildMember,
+          theheuman,
+          adminRoleIds,
           [zboy, supreme, mikey],
         );
       };
@@ -301,7 +312,8 @@ describe("Signups", () => {
         await signups.addTeam(
           expectedSignup.discordChannelId,
           "Dude Cube",
-          theheuman as unknown as GuildMember,
+          theheuman,
+          adminRoleIds,
           [theheuman, supreme, mikey],
         );
       };
@@ -322,7 +334,8 @@ describe("Signups", () => {
         await signups.addTeam(
           expectedSignup.discordChannelId,
           "",
-          theheuman as unknown as GuildMember,
+          theheuman,
+          adminRoleIds,
           [],
         );
       };
@@ -337,7 +350,8 @@ describe("Signups", () => {
         await signups.addTeam(
           "scrim 1",
           "Fineapples",
-          supreme as unknown as GuildMember,
+          supreme,
+          nonAdminRoleIds,
           [supreme, supreme, mikey],
         );
       };
@@ -380,7 +394,8 @@ describe("Signups", () => {
         const actualSignup = await signups.addTeam(
           correctDiscordChannelId,
           "Dude Cube",
-          theheuman as unknown as GuildMember,
+          theheuman,
+          adminRoleIds,
           [theheuman, supreme, mikey],
         );
 
@@ -395,7 +410,8 @@ describe("Signups", () => {
         const actualSignup = await signups.addTeam(
           correctDiscordChannelId,
           "Dude Cube",
-          supreme as unknown as GuildMember,
+          supreme,
+          nonAdminRoleIds,
           [theheuman, supreme, mikey],
         );
 
@@ -407,7 +423,8 @@ describe("Signups", () => {
           await signups.addTeam(
             correctDiscordChannelId,
             "Dude Cube",
-            supreme as unknown as GuildMember,
+            supreme,
+            nonAdminRoleIds,
             [theheuman, supreme, mikey],
           );
         };
@@ -422,7 +439,8 @@ describe("Signups", () => {
           await signups.addTeam(
             correctDiscordChannelId,
             "Dude Cube",
-            supreme as unknown as GuildMember,
+            supreme,
+            nonAdminRoleIds,
             [theheuman, supreme, mikey],
           );
         };

@@ -1,15 +1,13 @@
-import { GuildMember, User } from "discord.js";
+import { DiscordUserRef } from "../types/discord-ref";
 import { Player, PlayerInsert } from "../models/Player";
 import { DB } from "../db/db";
 import { ScrimSignupsWithPlayers } from "../db/table.interfaces";
 import { Scrim, ScrimSignup } from "../models/Scrims";
 import { PrioService } from "./prio";
-import { appConfig } from "../config";
 import { AuthService } from "./auth";
-import { DiscordService } from "./discord";
+import { ScrimNotifier, AlertSink } from "../types/notifications";
 import { BanService } from "./ban";
 import { ScrimService } from "./scrim-service";
-import { AlertService } from "./alert";
 import { StaticValueService } from "./static-values";
 import { OVERSTAT_LINK_CHANNEL_URL } from "../utility/utility";
 
@@ -18,18 +16,22 @@ export class SignupService {
     private db: DB,
     private prioService: PrioService,
     private authService: AuthService,
-    private discordService: DiscordService,
+    private discordService: ScrimNotifier,
     private banService: BanService,
     private scrimService: ScrimService,
-    private alertService: AlertService,
+    private alertService: AlertSink,
     private staticValueService: StaticValueService,
+    // was read from global app config before the move to this package —
+    // now supplied explicitly by the consumer (scrim-bot passes appConfig.lobbySize)
+    private lobbySize: number,
   ) {}
 
   async addTeam(
     discordChannelID: string,
     teamName: string,
-    commandUser: GuildMember,
-    players: User[],
+    commandUser: DiscordUserRef,
+    commandUserRoleIds: string[],
+    players: DiscordUserRef[],
   ): Promise<ScrimSignup> {
     const scrim = await this.scrimService.getScrim(discordChannelID);
     if (!scrim) {
@@ -64,13 +66,16 @@ export class SignupService {
     const playersToInsert = [commandUser, ...players];
     const convertedPlayers: PlayerInsert[] = playersToInsert.map(
       (discordUser) => ({
-        discordId: discordUser.id as string,
+        discordId: discordUser.id,
         displayName: discordUser.displayName,
       }),
     );
     const insertedPlayers = await this.db.insertPlayers(convertedPlayers);
     await this.checkForBans(scrim, insertedPlayers.slice(1));
-    await this.checkForMissingOverstat(insertedPlayers.slice(1), commandUser);
+    await this.checkForMissingOverstat(
+      insertedPlayers.slice(1),
+      commandUserRoleIds,
+    );
     const signupDate = new Date();
     const signupId = await this.db.addScrimSignup(
       teamName,
@@ -95,12 +100,12 @@ export class SignupService {
 
   private async checkForMissingOverstat(
     players: Player[],
-    commandMember: GuildMember,
+    commandUserRoleIds: string[],
   ) {
     if (!(await this.staticValueService.requireOverstatForSignup())) {
       return;
     }
-    if (await this.authService.memberIsAdmin(commandMember)) {
+    if (await this.authService.memberIsAdmin(commandUserRoleIds)) {
       return;
     }
     for (const player of players) {
@@ -140,7 +145,7 @@ export class SignupService {
     mainList: ScrimSignup[];
     waitList: ScrimSignup[];
   } {
-    const lobbySize = appConfig.lobbySize;
+    const lobbySize = this.lobbySize;
     const waitlistCutoff =
       lobbySize * Math.floor(teams.length / lobbySize) || lobbySize;
     const sortedTeams = [...teams].sort((teamA, teamB) => {

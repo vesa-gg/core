@@ -1,3 +1,7 @@
+// NOTE: uses node:fs for a local cache file. This works fine for scrim-bot
+// (a long-running Node process) but will NOT run inside a Cloudflare Worker
+// as-is — if VESAWeb ever needs this service, swap the cache for something
+// Workers-compatible (KV, Cache API) instead of the filesystem.
 import * as fs from "node:fs";
 import { DB } from "../db/db";
 

@@ -11,21 +11,31 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "husky || true && npm run build",
+    "prepare": "husky",
     "prepack": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/",
     "lint:staged": "npx lint-staged",
-    "bump-version": "./scripts/bump-version.sh"
+    "bump-version": "./scripts/bump-version.sh",
+    "nhost": "cd nhost && nhost up --apply-seeds"
   },
   "dependencies": {
+    "@googleapis/sheets": "^12.0.0",
     "@huggingface/hub": "^2.7.2",
+    "@nhost/nhost-js": "^3.1.10",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "google-auth-library": "^9.14.2",
+    "googleapis-common": "^7.2.0",
+    "graphql": "^16.9.0",
     "undici": "^7.20.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/graphql": "^14.2.3",
     "@types/jest": "^29.5.13",
     "@types/node": "^22.0.0",
     "eslint": "^9.12.0",

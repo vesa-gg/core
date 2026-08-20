@@ -13,7 +13,7 @@ import {
   Platform,
   VesaDivision,
 } from "../../src/models/league-models";
-import { GuildMember } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
 
 const mockRepository: jest.Mocked<LeagueDataRepository> = {
   writeSignup: jest.fn(),
@@ -161,10 +161,10 @@ describe("League Service", () => {
       overstatLink: undefined,
     };
 
-    const commandUser = {
+    const commandUser: DiscordUserRef = {
       displayName: "Commander",
       id: "commanderid",
-    } as GuildMember;
+    };
 
     const subRequestData: SubRequestData = {
       teamDivision: "Division4",
@@ -260,10 +260,10 @@ describe("League Service", () => {
       overstatLink: undefined,
     };
 
-    const commandUser = {
+    const commandUser: DiscordUserRef = {
       displayName: "Commander",
       id: "commanderid",
-    } as GuildMember;
+    };
 
     const rosterChangeData: RosterChangeData = {
       teamDivision: "Division4",

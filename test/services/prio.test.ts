@@ -1,17 +1,18 @@
-import { User } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
+import { AlertSink } from "../../src/types/notifications";
 import { Player, PlayerInsert } from "../../src/models/Player";
 import { PrioService } from "../../src/services/prio";
 import { DbMock } from "../mocks/db.mock";
 import SpyInstance = jest.SpyInstance;
 import { Scrim, ScrimSignup, ScrimType } from "../../src/models/Scrims";
 import { LeagueService } from "../../src/services/league";
-import { AlertService } from "../../src/services/alert";
 import { provideMagickalMock } from "../mocks/magickal-mock";
 
 describe("Prio", () => {
   let prioService: PrioService;
   let dbMock: DbMock;
   let leagueServiceMock: LeagueService;
+  let alertServiceMock: jest.Mocked<AlertSink>;
   let dbInsertPlayerSpy: SpyInstance<
     Promise<Player[]>,
     [players: PlayerInsert[]],
@@ -27,19 +28,19 @@ describe("Prio", () => {
     displayName: "mockPlayer",
     id: "dbId",
   };
-  const prioUser: User = {
+  const prioUser: DiscordUserRef = {
     id: "discordId",
     displayName: "mockUserName",
-  } as User;
+  };
 
   beforeEach(() => {
     dbMock = new DbMock();
     leagueServiceMock = provideMagickalMock(LeagueService);
-    prioService = new PrioService(
-      dbMock,
-      leagueServiceMock,
-      provideMagickalMock(AlertService),
-    );
+    alertServiceMock = {
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
+    prioService = new PrioService(dbMock, leagueServiceMock, alertServiceMock);
     dbInsertPlayerSpy = jest.spyOn(dbMock, "insertPlayers");
     dbInsertPlayerSpy.mockReturnValue(Promise.resolve([player]));
   });
