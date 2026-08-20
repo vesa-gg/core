@@ -20,6 +20,10 @@
     "lint:staged": "npx lint-staged",
     "bump-version": "./scripts/bump-version.sh"
   },
+  "dependencies": {
+    "@huggingface/hub": "^2.7.2",
+    "undici": "^7.20.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.12.0",
     "@types/jest": "^29.5.13",
