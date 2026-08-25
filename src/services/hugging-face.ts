@@ -12,7 +12,12 @@ const dispatcher = new Agent({
   headersTimeout: 30000,
 });
 
-const customFetch = (url: URL | RequestInfo, init?: RequestInit) => {
+// Typed as `typeof fetch` (the global fetch signature `@huggingface/hub`
+// expects) rather than undici's own exported types — undici and the
+// ambient global fetch types ship their own separate `Request`/`Response`
+// declarations that don't structurally match, so pinning to undici's types
+// here caused a mismatch when this got passed to `commit()`.
+const customFetch: typeof fetch = (url, init) => {
   return undiciFetch(url as Parameters<typeof undiciFetch>[0], {
     ...(init as Parameters<typeof undiciFetch>[1] | undefined),
     dispatcher,
