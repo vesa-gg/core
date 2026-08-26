@@ -298,16 +298,7 @@ export abstract class DB {
       }
     `;
     const result: JSONValue = await this.customQuery(query);
-    const returnedData: {
-      insert_players: {
-        returning: {
-          id: string;
-          discord_id: string;
-          overstat_id: string;
-          display_name: string;
-        }[];
-      };
-    } = result as unknown as {
+    const returnedData = result as {
       insert_players: {
         returning: {
           id: string;
