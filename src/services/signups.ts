@@ -1,4 +1,4 @@
-import { DiscordUserRef } from "../types/discord-ref";
+import { DiscordUserRef, Actor } from "../types/discord-ref";
 import { Player, PlayerInsert } from "../models/Player";
 import { DB } from "../db/db";
 import { ScrimSignupsWithPlayers } from "../db/table.interfaces";
@@ -29,8 +29,7 @@ export class SignupService {
   async addTeam(
     discordChannelID: string,
     teamName: string,
-    commandUser: DiscordUserRef,
-    commandUserRoleIds: string[],
+    actor: Actor,
     players: DiscordUserRef[],
   ): Promise<ScrimSignup> {
     const scrim = await this.scrimService.getScrim(discordChannelID);
@@ -63,7 +62,7 @@ export class SignupService {
         }
       }
     }
-    const playersToInsert = [commandUser, ...players];
+    const playersToInsert = [actor, ...players];
     const convertedPlayers: PlayerInsert[] = playersToInsert.map(
       (discordUser) => ({
         discordId: discordUser.id,
@@ -72,10 +71,7 @@ export class SignupService {
     );
     const insertedPlayers = await this.db.insertPlayers(convertedPlayers);
     await this.checkForBans(scrim, insertedPlayers.slice(1));
-    await this.checkForMissingOverstat(
-      insertedPlayers.slice(1),
-      commandUserRoleIds,
-    );
+    await this.checkForMissingOverstat(insertedPlayers.slice(1), actor.roleIds);
     const signupDate = new Date();
     const signupId = await this.db.addScrimSignup(
       teamName,
@@ -98,14 +94,11 @@ export class SignupService {
     return scrimSignup;
   }
 
-  private async checkForMissingOverstat(
-    players: Player[],
-    commandUserRoleIds: string[],
-  ) {
+  private async checkForMissingOverstat(players: Player[], roleIds: string[]) {
     if (!(await this.staticValueService.requireOverstatForSignup())) {
       return;
     }
-    if (await this.authService.memberIsAdmin(commandUserRoleIds)) {
+    if (await this.authService.memberIsAdmin(roleIds)) {
       return;
     }
     for (const player of players) {

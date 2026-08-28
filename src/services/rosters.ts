@@ -1,4 +1,4 @@
-import { DiscordUserRef } from "../types/discord-ref";
+import { DiscordUserRef, Actor } from "../types/discord-ref";
 import { DB } from "../db/db";
 import { Scrim, ScrimSignup } from "../models/Scrims";
 import { AuthService } from "./auth";
@@ -22,20 +22,14 @@ export class RosterService {
   ) {}
 
   async replaceTeammate(
-    memberUsingCommand: DiscordUserRef,
-    memberUsingCommandRoleIds: string[],
+    actor: Actor,
     discordChannel: string,
     teamName: string,
     oldUser: DiscordUserRef,
     newUser: DiscordUserRef,
   ): Promise<ScrimSignup> {
     const { teamToBeChanged, scrim, signups, isAdmin } =
-      await this.getDataIfAuthorized(
-        memberUsingCommand,
-        memberUsingCommandRoleIds,
-        discordChannel,
-        teamName,
-      );
+      await this.getDataIfAuthorized(actor, discordChannel, teamName);
     for (const team of signups) {
       for (const player of team.players) {
         if (player.discordId === newUser.id) {
@@ -100,14 +94,12 @@ export class RosterService {
   }
 
   async removeSignup(
-    memberUsingCommand: DiscordUserRef,
-    memberUsingCommandRoleIds: string[],
+    actor: Actor,
     discordChannel: string,
     teamName: string,
   ): Promise<void> {
     const { teamToBeChanged, signups, scrim } = await this.getDataIfAuthorized(
-      memberUsingCommand,
-      memberUsingCommandRoleIds,
+      actor,
       discordChannel,
       teamName,
     );
@@ -117,15 +109,13 @@ export class RosterService {
   }
 
   async changeTeamName(
-    memberUsingCommand: DiscordUserRef,
-    memberUsingCommandRoleIds: string[],
+    actor: Actor,
     discordChannel: string,
     oldTeamName: string,
     newTeamName: string,
   ): Promise<void> {
     const { teamToBeChanged, scrim, signups } = await this.getDataIfAuthorized(
-      memberUsingCommand,
-      memberUsingCommandRoleIds,
+      actor,
       discordChannel,
       oldTeamName,
     );
@@ -143,8 +133,7 @@ export class RosterService {
   }
 
   private async getDataIfAuthorized(
-    memberUsingCommand: DiscordUserRef,
-    memberUsingCommandRoleIds: string[],
+    actor: Actor,
     discordChannel: string,
     teamName: string,
   ): Promise<{
@@ -164,10 +153,8 @@ export class RosterService {
     if (!teamToBeChanged) {
       throw Error("No team with that name");
     }
-    const isAdmin = await this.authService.memberIsAdmin(
-      memberUsingCommandRoleIds,
-    );
-    const isOnTeam = this.memberIsOnTeam(memberUsingCommand, teamToBeChanged);
+    const isAdmin = await this.authService.memberIsAdmin(actor.roleIds);
+    const isOnTeam = this.memberIsOnTeam(actor, teamToBeChanged);
     if (!isOnTeam && !isAdmin) {
       throw Error("User issuing command not authorized to make changes");
     }

@@ -1,6 +1,6 @@
 import { DbMock } from "../mocks/db.mock";
 import { Player } from "../../src/models/Player";
-import { DiscordUserRef } from "../../src/types/discord-ref";
+import { DiscordUserRef, Actor } from "../../src/types/discord-ref";
 import { AlertSink, ScrimNotifier } from "../../src/types/notifications";
 import { RosterService } from "../../src/services/rosters";
 import { ScrimType, Scrim, ScrimSignup } from "../../src/models/Scrims";
@@ -91,24 +91,31 @@ describe("Rosters", () => {
       .mockReturnValue(Promise.resolve([]));
   });
 
-  const zboy: { user: DiscordUserRef; member: DiscordUserRef; player: Player } =
-    {
-      user: { id: "0", displayName: "Zboy" },
-      member: { id: "0", displayName: "Zboy" },
-      player: {
-        discordId: "0",
-        id: "1987254",
-        displayName: "Zboy",
-        overstatId: "1234",
-      },
-    };
+  const zboy: {
+    user: DiscordUserRef;
+    member: DiscordUserRef;
+    actor: Actor;
+    player: Player;
+  } = {
+    user: { id: "0", displayName: "Zboy" },
+    member: { id: "0", displayName: "Zboy" },
+    actor: { id: "0", displayName: "Zboy", roleIds },
+    player: {
+      discordId: "0",
+      id: "1987254",
+      displayName: "Zboy",
+      overstatId: "1234",
+    },
+  };
   const theheuman: {
     user: DiscordUserRef;
     member: DiscordUserRef;
+    actor: Actor;
     player: Player;
   } = {
     user: { id: "1", displayName: "TheHeuman" },
     member: { id: "1", displayName: "TheHeuman" },
+    actor: { id: "1", displayName: "TheHeuman", roleIds },
     player: { discordId: "1", id: "123", displayName: "TheHeuman" },
   };
 
@@ -151,8 +158,7 @@ describe("Rosters", () => {
 
       const dbSpy = jest.spyOn(dbMock, "removeScrimSignup");
       await rosters.removeSignup(
-        zboy.member,
-        roleIds,
+        zboy.actor,
         discordChannel,
         getFineapples().teamName,
       );
@@ -169,8 +175,7 @@ describe("Rosters", () => {
 
       const causeException = async () => {
         await rosters.removeSignup(
-          zboy.member,
-          roleIds,
+          zboy.actor,
           "034528",
           getFineapples().teamName,
         );
@@ -198,8 +203,7 @@ describe("Rosters", () => {
         .mockReturnValue(Promise.resolve(scrim));
       const causeException = async () => {
         await rosters.removeSignup(
-          zboy.member,
-          roleIds,
+          zboy.actor,
           discordChannel,
           "random other name",
         );
@@ -236,8 +240,7 @@ describe("Rosters", () => {
         .mockReturnValue(Promise.resolve(false));
       const causeException = async () => {
         await rosters.removeSignup(
-          zboy.member,
-          roleIds,
+          zboy.actor,
           discordChannel,
           differentFineapples.teamName,
         );
@@ -270,8 +273,7 @@ describe("Rosters", () => {
         .mockReturnValue(Promise.resolve(scrim));
 
       await rosters.changeTeamName(
-        zboy.member,
-        roleIds,
+        zboy.actor,
         discordChannel,
         fineapples.teamName,
         "Dude Cube",
@@ -304,8 +306,7 @@ describe("Rosters", () => {
         .mockReturnValue(Promise.resolve(scrim));
       const causeException = async () => {
         await rosters.changeTeamName(
-          zboy.member,
-          roleIds,
+          zboy.actor,
           discordChannel,
           fineapples.teamName,
           dudeCube.teamName,
@@ -348,8 +349,7 @@ describe("Rosters", () => {
         .mockReturnValue(Promise.resolve(zboy.player));
 
       await rosters.replaceTeammate(
-        theheuman.member,
-        roleIds,
+        theheuman.actor,
         discordChannel,
         dudeCube.teamName,
         theheuman.user,
@@ -392,8 +392,7 @@ describe("Rosters", () => {
 
       const causeException = async () => {
         await rosters.replaceTeammate(
-          theheuman.member,
-          roleIds,
+          theheuman.actor,
           discordChannel,
           getFineapples().teamName,
           theheuman.user,
@@ -434,8 +433,7 @@ describe("Rosters", () => {
 
       const causeException = async () => {
         await rosters.replaceTeammate(
-          theheuman.member,
-          roleIds,
+          theheuman.actor,
           discordChannel,
           dudeCube.teamName,
           zboy.user,
@@ -479,8 +477,7 @@ describe("Rosters", () => {
 
       const causeException = async () => {
         await rosters.replaceTeammate(
-          theheuman.member,
-          roleIds,
+          theheuman.actor,
           discordChannel,
           dudeCube.teamName,
           zboy.user,
@@ -531,8 +528,7 @@ describe("Rosters", () => {
       const dbSpy = jest.spyOn(dbMock, "replaceTeammateNoAuth");
 
       await rosters.replaceTeammate(
-        theheuman.member,
-        roleIds,
+        theheuman.actor,
         discordChannel,
         dudeCube.teamName,
         zboy.user,
@@ -580,8 +576,7 @@ describe("Rosters", () => {
 
       const causeException = async () => {
         await rosters.replaceTeammate(
-          theheuman.member,
-          roleIds,
+          theheuman.actor,
           discordChannel,
           dudeCube.teamName,
           theheuman.user,
@@ -634,8 +629,7 @@ describe("Rosters", () => {
 
       const causeException = async () => {
         await rosters.replaceTeammate(
-          theheuman.member,
-          roleIds,
+          theheuman.actor,
           discordChannel,
           dudeCube.teamName,
           theheuman.user,

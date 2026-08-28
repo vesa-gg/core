@@ -1,7 +1,7 @@
 import { SignupService } from "../../src/services/signups";
 import { DbMock } from "../mocks/db.mock";
 import { Player } from "../../src/models/Player";
-import { DiscordUserRef } from "../../src/types/discord-ref";
+import { Actor, DiscordUserRef } from "../../src/types/discord-ref";
 import { AlertSink, ScrimNotifier } from "../../src/types/notifications";
 import { ScrimType, ScrimSignup } from "../../src/models/Scrims";
 import { PrioService } from "../../src/services/prio";
@@ -35,6 +35,13 @@ describe("Signups", () => {
   // old `member === theheuman` identity check.
   const adminRoleIds = ["admin-role"];
   const nonAdminRoleIds: string[] = [];
+  // Builds the Actor addTeam expects from a plain DiscordUserRef fixture and
+  // one of the role id sets above, so call sites below don't need to spell
+  // out the object literal each time.
+  const asActor = (user: DiscordUserRef, roleIds: string[]): Actor => ({
+    ...user,
+    roleIds,
+  });
 
   let insertPlayersSpy: SpyInstance;
 
@@ -168,8 +175,7 @@ describe("Signups", () => {
       const actualScrimSignup = await signups.addTeam(
         expectedSignup.discordChannelId,
         expectedSignup.teamName,
-        theheuman,
-        adminRoleIds,
+        asActor(theheuman, adminRoleIds),
         [theheuman, zboy, supreme],
       );
       const expectedReturnSignup: ScrimSignup = {
@@ -217,7 +223,7 @@ describe("Signups", () => {
         .spyOn(scrimServiceMock, "getScrim")
         .mockReturnValueOnce(Promise.resolve(null));
       const causeException = async () => {
-        await signups.addTeam("", "", theheuman, adminRoleIds, []);
+        await signups.addTeam("", "", asActor(theheuman, adminRoleIds), []);
       };
 
       await expect(causeException).rejects.toThrow(
@@ -264,8 +270,7 @@ describe("Signups", () => {
         await signups.addTeam(
           expectedSignup.discordChannelId,
           "Fineapples",
-          theheuman,
-          adminRoleIds,
+          asActor(theheuman, adminRoleIds),
           [zboy, supreme, mikey],
         );
       };
@@ -312,8 +317,7 @@ describe("Signups", () => {
         await signups.addTeam(
           expectedSignup.discordChannelId,
           "Dude Cube",
-          theheuman,
-          adminRoleIds,
+          asActor(theheuman, adminRoleIds),
           [theheuman, supreme, mikey],
         );
       };
@@ -334,8 +338,7 @@ describe("Signups", () => {
         await signups.addTeam(
           expectedSignup.discordChannelId,
           "",
-          theheuman,
-          adminRoleIds,
+          asActor(theheuman, adminRoleIds),
           [],
         );
       };
@@ -350,8 +353,7 @@ describe("Signups", () => {
         await signups.addTeam(
           "scrim 1",
           "Fineapples",
-          supreme,
-          nonAdminRoleIds,
+          asActor(supreme, nonAdminRoleIds),
           [supreme, supreme, mikey],
         );
       };
@@ -394,8 +396,7 @@ describe("Signups", () => {
         const actualSignup = await signups.addTeam(
           correctDiscordChannelId,
           "Dude Cube",
-          theheuman,
-          adminRoleIds,
+          asActor(theheuman, adminRoleIds),
           [theheuman, supreme, mikey],
         );
 
@@ -410,8 +411,7 @@ describe("Signups", () => {
         const actualSignup = await signups.addTeam(
           correctDiscordChannelId,
           "Dude Cube",
-          supreme,
-          nonAdminRoleIds,
+          asActor(supreme, nonAdminRoleIds),
           [theheuman, supreme, mikey],
         );
 
@@ -423,8 +423,7 @@ describe("Signups", () => {
           await signups.addTeam(
             correctDiscordChannelId,
             "Dude Cube",
-            supreme,
-            nonAdminRoleIds,
+            asActor(supreme, nonAdminRoleIds),
             [theheuman, supreme, mikey],
           );
         };
@@ -439,8 +438,7 @@ describe("Signups", () => {
           await signups.addTeam(
             correctDiscordChannelId,
             "Dude Cube",
-            supreme,
-            nonAdminRoleIds,
+            asActor(supreme, nonAdminRoleIds),
             [theheuman, supreme, mikey],
           );
         };
