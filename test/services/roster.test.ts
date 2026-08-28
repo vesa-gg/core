@@ -23,10 +23,6 @@ describe("Rosters", () => {
   let alertServiceMock: jest.Mocked<AlertSink>;
   const discordChannel = "034528";
 
-  // Every call site below previously passed a live discord.js GuildMember;
-  // RosterService only ever forwards the role ids to AuthService.memberIsAdmin,
-  // whose mock (below) is stubbed by return value per-test, so the actual
-  // contents of this array don't drive test behavior.
   const roleIds: string[] = [];
 
   beforeEach(() => {
@@ -56,9 +52,6 @@ describe("Rosters", () => {
       });
     scrimServiceMock = provideMagickalMock(ScrimService);
     signupServiceMock = provideMagickalMock(SignupService);
-    // DiscordService/AlertService are concrete, Discord-Client-coupled
-    // classes that stay in scrim-bot. RosterService only depends on the
-    // ScrimNotifier/AlertSink interfaces they implement.
     scrimNotifierMock = {
       updateSignupPostDescription: jest.fn(),
       sendScoresComputedMessage: jest.fn(),

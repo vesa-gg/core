@@ -21,8 +21,6 @@ export class SignupService {
     private scrimService: ScrimService,
     private alertService: AlertSink,
     private staticValueService: StaticValueService,
-    // was read from global app config before the move to this package —
-    // now supplied explicitly by the consumer (scrim-bot passes appConfig.lobbySize)
     private lobbySize: number,
   ) {}
 

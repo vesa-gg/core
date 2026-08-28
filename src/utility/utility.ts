@@ -1,7 +1,3 @@
-// Framework-agnostic helpers only. Discord.js-coupled helpers (isGuildMember,
-// isForumChannel) stay in scrim-bot's own utility module since this package
-// does not depend on discord.js.
-
 export function omitKey<T extends object, K extends keyof T>(
   obj: T,
   key: K,

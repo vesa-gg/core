@@ -1,7 +1,3 @@
-// NOTE: uses `undici` for a custom-timeout fetch dispatcher. `undici` is a
-// Node-only package — this will NOT run inside a Cloudflare Worker as-is. If
-// VESAWeb ever needs this service, swap to the platform's native `fetch`
-// (Workers' fetch already supports comparable options) instead of undici.
 import { commit } from "@huggingface/hub";
 import { OverstatTournamentResponse } from "../models/overstatModels";
 import { Agent, fetch as undiciFetch } from "undici";
@@ -25,8 +21,6 @@ const customFetch: typeof fetch = (url, init) => {
 };
 
 export class HuggingFaceService {
-  // was read from global app config before the move to this package — now
-  // supplied explicitly by the consumer (scrim-bot passes appConfig.huggingFaceToken)
   constructor(private hfToken: string) {}
 
   // throws if upload fails, returns the file url on success

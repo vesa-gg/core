@@ -1,11 +1,3 @@
-// NOTE: uses @googleapis/sheets + google-auth-library, and reads a service
-// account key from a local file path ("service-account-key.json"). This is
-// Node-only and file-system-dependent — it works fine for scrim-bot on
-// Heroku (which writes that file at build time, see scripts/create-config.sh)
-// but will NOT run inside a Cloudflare Worker as-is. If VESAWeb ever needs
-// this repository, switch to injecting the key material via config instead
-// of a static keyFile path (VESAWeb's own Worker already signs Google JWTs
-// by hand with Web Crypto for exactly this reason — see its worker/index.js).
 import { GoogleAuth, JWT } from "google-auth-library";
 import { auth, sheets } from "@googleapis/sheets";
 import { SheetHelper } from "../utility/sheet-helper";

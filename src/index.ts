@@ -1,7 +1,3 @@
-// Public API surface of @vesa-gg/core. Consumers (scrim-bot, and eventually
-// VESAWeb) should import from here rather than reaching into src/ paths
-// directly, so internal reshuffling doesn't ripple out as a breaking change.
-
 // Types
 export * from "./types/discord-ref";
 export * from "./types/notifications";

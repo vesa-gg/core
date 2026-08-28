@@ -10,13 +10,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * @param roleIds Discord role IDs held by the caller. scrim-bot derives this
-   * from a live `GuildMember` (`member.roles.cache.map(r => r.id)`); any future
-   * caller without a live gateway connection (e.g. a server-side action
-   * triggered from VESAWeb) resolves it however it can — a Discord REST lookup
-   * using a bot token, for instance — and passes the plain array in here.
-   */
   async memberIsAdmin(roleIds: string[]): Promise<boolean> {
     const adminRoleSet = await this.getAdminRoleMap();
     return this.hasAdminRole(roleIds, adminRoleSet);

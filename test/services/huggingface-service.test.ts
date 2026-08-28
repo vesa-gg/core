@@ -11,8 +11,6 @@ jest.mock("@huggingface/hub", () => ({
 
 describe("HuggingFaceService", () => {
   it("should pass custom fetch to commit with correct timeout", async () => {
-    // was appConfig.huggingFaceToken before the move to this package; now
-    // injected directly by whoever constructs HuggingFaceService.
     const service = new HuggingFaceService("fake-token");
     const mockStats = {
       total: 10,

@@ -25,14 +25,8 @@ describe("Signups", () => {
   let alertServiceMock: jest.Mocked<AlertSink>;
   const correctDiscordChannelId = "a forum post";
   const correctScrimId = "32451";
-  // was appConfig.lobbySize before the move to this package; now injected
-  // directly by whoever constructs SignupService.
   const lobbySize = 3;
 
-  // AuthService no longer takes a Discord member object — it takes the
-  // caller's role ids. These two fixtures stand in for "the roles that
-  // happen to include VESA's admin role" and "no admin role", replacing the
-  // old `member === theheuman` identity check.
   const adminRoleIds = ["admin-role"];
   const nonAdminRoleIds: string[] = [];
   // Builds the Actor addTeam expects from a plain DiscordUserRef fixture and
@@ -52,10 +46,6 @@ describe("Signups", () => {
     authServiceMock = provideMagickalMock(AuthService);
     scrimServiceMock = provideMagickalMock(ScrimService);
     staticValueServiceMock = provideMagickalMock(StaticValueService);
-    // DiscordService/AlertService are concrete, Discord-Client-coupled
-    // classes that stay in scrim-bot. SignupService only depends on the
-    // ScrimNotifier/AlertSink interfaces they implement, so here we can mock
-    // those interfaces directly instead of pulling in discord.js.
     scrimNotifierMock = {
       updateSignupPostDescription: jest.fn(),
       sendScoresComputedMessage: jest.fn(),
