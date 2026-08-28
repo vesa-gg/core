@@ -16,7 +16,7 @@ export class SignupService {
     private db: DB,
     private prioService: PrioService,
     private authService: AuthService,
-    private discordService: ScrimNotifier,
+    private scrimNotifier: ScrimNotifier,
     private banService: BanService,
     private scrimService: ScrimService,
     private alertService: AlertSink,
@@ -227,7 +227,7 @@ export class SignupService {
     const signups = await this.getRawSignups(scrim);
     const count = signups.length;
     try {
-      await this.discordService.updateSignupPostDescription(scrim, count);
+      await this.scrimNotifier.updateSignupPostDescription(scrim, count);
     } catch (e) {
       await this.alertService.warn(
         `Unable to update scrim signup count for scrim ${scrim.id} channel ${scrim.discordChannel}: ${e}`,

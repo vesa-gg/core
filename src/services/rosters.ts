@@ -13,7 +13,7 @@ export class RosterService {
   constructor(
     private db: DB,
     private authService: AuthService,
-    private discordService: ScrimNotifier,
+    private scrimNotifier: ScrimNotifier,
     private banService: BanService,
     private staticValueService: StaticValueService,
     private scrimService: ScrimService,
@@ -191,7 +191,7 @@ export class RosterService {
         throw Error("No scrim for that channel");
       }
       const count = (await this.signupService.getRawSignups(scrim)).length;
-      await this.discordService.updateSignupPostDescription(scrim, count);
+      await this.scrimNotifier.updateSignupPostDescription(scrim, count);
     } catch (e) {
       await this.alertService.warn(
         `Unable to update scrim signup count for scrim ${scrim?.id} channel ${scrim?.discordChannel}: ${e}`,

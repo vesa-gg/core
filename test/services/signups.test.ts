@@ -21,7 +21,7 @@ describe("Signups", () => {
   let mockBanService: BanService;
   let scrimServiceMock: ScrimService;
   let staticValueServiceMock: StaticValueService;
-  let discordServiceMock: jest.Mocked<ScrimNotifier>;
+  let scrimNotifierMock: jest.Mocked<ScrimNotifier>;
   let alertServiceMock: jest.Mocked<AlertSink>;
   const correctDiscordChannelId = "a forum post";
   const correctScrimId = "32451";
@@ -49,7 +49,7 @@ describe("Signups", () => {
     // classes that stay in scrim-bot. SignupService only depends on the
     // ScrimNotifier/AlertSink interfaces they implement, so here we can mock
     // those interfaces directly instead of pulling in discord.js.
-    discordServiceMock = {
+    scrimNotifierMock = {
       updateSignupPostDescription: jest.fn(),
       sendScoresComputedMessage: jest.fn(),
     };
@@ -64,7 +64,7 @@ describe("Signups", () => {
       dbMock,
       prioServiceMock,
       authServiceMock,
-      discordServiceMock,
+      scrimNotifierMock,
       mockBanService,
       scrimServiceMock,
       alertServiceMock,

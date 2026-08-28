@@ -19,7 +19,7 @@ describe("Rosters", () => {
   let staticValueService: StaticValueService;
   let scrimServiceMock: ScrimService;
   let signupServiceMock: SignupService;
-  let discordServiceMock: jest.Mocked<ScrimNotifier>;
+  let scrimNotifierMock: jest.Mocked<ScrimNotifier>;
   let alertServiceMock: jest.Mocked<AlertSink>;
   const discordChannel = "034528";
 
@@ -59,7 +59,7 @@ describe("Rosters", () => {
     // DiscordService/AlertService are concrete, Discord-Client-coupled
     // classes that stay in scrim-bot. RosterService only depends on the
     // ScrimNotifier/AlertSink interfaces they implement.
-    discordServiceMock = {
+    scrimNotifierMock = {
       updateSignupPostDescription: jest.fn(),
       sendScoresComputedMessage: jest.fn(),
     };
@@ -70,7 +70,7 @@ describe("Rosters", () => {
     rosters = new RosterService(
       dbMock,
       authService,
-      discordServiceMock,
+      scrimNotifierMock,
       banServiceMock,
       staticValueService,
       scrimServiceMock,
