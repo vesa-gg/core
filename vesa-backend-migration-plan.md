@@ -2,6 +2,23 @@
 
 *Written after reviewing `scrim-bot` and `VESAWeb` on disk (CLAUDE.md, `src/db`, `src/services/auth.ts`, `nhost/`, `DEPLOYMENT.md`, `worker/index.js`, `wrangler.jsonc`, `.github/workflows`, and `git ls-files` in both repos).*
 
+## Current status
+
+*Updated as decisions get made and work lands — see the status note at the top of each numbered section below for the reasoning behind each entry.*
+
+| Phase | Status |
+|---|---|
+| 1. Reconcile production Nhost schema | Not started — approach revised, see §3 |
+| 2. Create `core` repo, move framework-agnostic code out of scrim-bot | Done — `src/db`, `src/services`, `src/models`, `src/repositories` moved, tests moved and passing. `nhost/` project not yet moved (see §3) |
+| 3. Decouple `AuthService`, introduce `Actor` | Mostly done — `roleIds: string[]` plumbing and `Actor` (identity + roleIds) built; the admin/trusted-caller kind of `Actor` is still open, see §2 |
+| 4. Add user-actor support (JWT verification, Discord role lookup) | Not started |
+| 5. Wire scrim-bot to consume the package | Not started |
+| 6. Wire VESAWeb's Worker | Not started |
+| 7. Turn on Nhost's Git integration | Not started — tied to §3, now planned after step 5 |
+| 8. Cleanup | Not started |
+
+Other decisions locked in along the way: the package ships as `@vesa-gg/core` via git-tag dependency (§1, §4); `DB` stays abstract-class-plus-mock rather than becoming provider-agnostic (§5); the domain-scoped repository split beyond League is deferred (§5); the GraphQL-injection issue in `db.ts` is still open (§5). See "Divergences and concerns since implementation started" at the end of this document for gaps that surfaced during the move that this plan didn't anticipate.
+
 ## What the current codebases actually tell us
 
 A few facts from the repos should drive the design, so they're worth stating up front:
@@ -15,6 +32,8 @@ Everything below is designed around those facts rather than a hypothetical clean
 ---
 
 ## 1. How the two apps should consume the new backend
+
+**Status: decided and implemented.** Ships as `@vesa-gg/core`, distributed via git-tag dependency (see "Distribution mechanics" below — git-tag was chosen over a private registry). The web-standard-APIs-only constraint described below is not yet fully met by everything that's moved into the package so far — see "Divergences and concerns since implementation started" at the end of this document for the specific files and what needs to change.
 
 **Recommendation: ship it as an installable TypeScript package (a library), not a third always-on service.**
 
@@ -44,6 +63,8 @@ Either way, pin both consumers to an exact tag (not a range) and bump deliberate
 
 ## 2. Handling the two authorization modes
 
+**Status: partially implemented.** `AuthService.memberIsAdmin` already takes a plain `roleIds: string[]` instead of a `GuildMember`, and an `Actor` type (identity + `roleIds`) now threads through `RosterService`/`SignupService` in place of separately-passed `(user, roleIds)` pairs — that's the "user" case of the union below, built early because scrim-bot's own commands needed it too. Still open: the `{kind: "admin"}` case of the union (confirmed still needed — for a caller with no real Discord identity behind it, e.g. an internal scheduled job, not just dropped in favor of the simpler shape), JWT verification against Nhost's JWKS, and the Discord REST role-lookup path for VESAWeb's Worker.
+
 Model this as an **actor**, not as "two modes of the whole package." Every backend action (the equivalent of today's service methods — `closeScrim`, `addPrio`, `insertLeagueSignup`, etc.) takes an actor argument that's one of:
 
 ```ts
@@ -51,6 +72,8 @@ type Actor =
   | { kind: "admin" }                                              // trusted server-to-server caller
   | { kind: "user"; nhostUserId: string; discordId: string; roleIds: string[] };
 ```
+
+*(What's built today: `interface Actor extends DiscordUserRef { roleIds: string[] }` — the shape of the `user` case above, minus `kind` and `nhostUserId` — used so far only for scrim-bot's own Discord-originated callers in `RosterService`/`SignupService`. The `kind: "admin"` case and `nhostUserId` field still need to be added when the user-actor and Worker work below starts.)*
 
 - **Admin actor** — used by scrim-bot, exactly like today's `AdminCommand`/`MemberCommand` split, just generalized past Discord commands. Nothing new to invent here; scrim-bot already holds the Nhost admin secret and already gates admin-only operations at the command layer.
 - **User actor** — used by VESAWeb's Worker. This is the part that needs new work, because two things scrim-bot gets "for free" from being a live Discord bot don't exist on the website side:
@@ -65,6 +88,8 @@ Practically: the Worker validates the incoming JWT + fetches roles, builds a `us
 ---
 
 ## 3. Getting the Nhost connection clean
+
+**Status: not started.** Planned to happen after step 5 (scrim-bot wired to consume `core`), not before it — this reverses the sequencing recommended below, which called for doing this first "in isolation" specifically to de-risk everything after it. The approach has also changed: rather than moving scrim-bot's tracked `nhost/nhost/` project into this repo and reconciling it by hand against production, the plan is now to initialize a fresh Nhost CLI project inside `core` and connect it directly to the production project, letting the CLI pull the live schema down instead of reconciling the old tracked migrations.
 
 This is the part with real risk if rushed, because — as you said — production has never actually been driven by what's in git. The tracked migrations in scrim-bot are a *reconstruction*, not a true history, and there's no guarantee they'd produce an identical schema if replayed from scratch (manual tweaks made directly in the Hasura console wouldn't be captured).
 
@@ -84,6 +109,8 @@ This is the part with real risk if rushed, because — as you said — productio
 
 ## 4. Repo name
 
+**Decided: `core`** — published as `@vesa-gg/core`, not `vesa-core`.
+
 Two reasonable options, differing mainly in what they imply about architecture:
 
 - **`vesa-core`** — signals "shared domain library," matches the library-not-service recommendation above, and avoids implying it's a hosted, independently-running "backend" (which it explicitly isn't, per §1).
@@ -94,6 +121,8 @@ I'd lean **`vesa-core`** given the shape of the recommendation, but it's a coin 
 ---
 
 ## 5. Should the backend be DB-provider agnostic?
+
+**Status: recommendation followed, with one piece deferred and one still open.** The `DB` abstract-class-plus-mock pattern (`DB`/`NhostDb`/`DbMock`) was kept and moved into `core` as-is. The domain-scoped repository split suggested below (`ScrimRepository`, `PlayerRepository`, etc.) is **deferred, not a current priority** — only `League` ended up with its own repository split, driven by the Sheets integration rather than this general pattern. The GraphQL-injection issue flagged below is **still open**: `db.ts` still builds several queries via unescaped string interpolation (e.g. `insertPlayerIfNotExists` does `discord_id: "${discordId}"` directly) — this needs fixing.
 
 **Recommendation: no — keep the existing abstraction for *testability*, don't invest in real multi-provider portability.**
 
@@ -111,16 +140,16 @@ While in there, it's worth fixing the GraphQL-injection issue ADR-0010/CLAUDE.md
 
 ## Suggested phased sequence
 
-1. **Reconcile production schema** against tracked migrations (§3) — do this first and in isolation; it doesn't depend on any code migration and de-risks everything after it.
-2. **Create the new repo** (`vesa-core` or chosen name); move the framework-agnostic pieces out of scrim-bot — `src/db`, `src/services`, `src/models`, the reconciled `nhost/` project. Leave Discord-specific glue (`Client.ts`, commands, events, the `discord.js` dependency itself) in scrim-bot.
-3. **Decouple `AuthService`** from `discord.js`'s `GuildMember` → plain `roleIds: string[]`; introduce the `Actor` type from §2.
-4. **Add user-actor support**: JWT verification against Nhost's JWKS, plus the Discord role-lookup path VESAWeb's Worker will call over REST using its existing bot token.
-5. **Wire scrim-bot** to consume the package (git-tag dependency), delete the now-duplicated source, run the existing Jest suite as a regression check (it's already fairly thorough per CLAUDE.md — good safety net for this step specifically).
-6. **Wire VESAWeb's Worker** to import the same package and expose the specific user-authorized actions the site needs. This is also the natural point to retire the transitional Google-Sheets league-signup path in `worker/index.js` (explicitly marked transitional in `DEPLOYMENT.md`, waiting on "the Nhost migration") — once the site can write to Nhost through properly authorized actions instead of a Sheets side-channel, that workaround goes away.
-7. **Turn on Nhost's Git integration** against the new repo (dev → `main`, prod → `release`), now that step 1 has made the migration history trustworthy.
-8. **Cleanup**: remove `nhost/` from scrim-bot, remove the dead local scaffold from VESAWeb, update both repos' `CLAUDE.md`/`README.md`/`DEPLOYMENT.md` to point at the new repo as the source of truth for DB/domain logic.
+1. **Reconcile production schema** against tracked migrations (§3) — do this first and in isolation; it doesn't depend on any code migration and de-risks everything after it. **Status: not started, and no longer planned first — see §3.** Now planned to happen *after* step 5, using a freshly-initialized Nhost CLI project connected to production rather than reconciling the old tracked migrations by hand.
+2. **Create the new repo** (`vesa-core` or chosen name); move the framework-agnostic pieces out of scrim-bot — `src/db`, `src/services`, `src/models`, the reconciled `nhost/` project. Leave Discord-specific glue (`Client.ts`, commands, events, the `discord.js` dependency itself) in scrim-bot. **Status: done**, except the `nhost/` project — that's deferred along with step 1, see §3.
+3. **Decouple `AuthService`** from `discord.js`'s `GuildMember` → plain `roleIds: string[]`; introduce the `Actor` type from §2. **Status: mostly done** — the `roleIds: string[]` plumbing and `Actor` (identity + roleIds) are in; the `Actor` union's admin/trusted-caller kind is still open, see §2.
+4. **Add user-actor support**: JWT verification against Nhost's JWKS, plus the Discord role-lookup path VESAWeb's Worker will call over REST using its existing bot token. **Status: not started.**
+5. **Wire scrim-bot** to consume the package (git-tag dependency), delete the now-duplicated source, run the existing Jest suite as a regression check (it's already fairly thorough per CLAUDE.md — good safety net for this step specifically). **Status: not started** — everything so far has been built and verified inside `core` in isolation; scrim-bot itself hasn't been switched over to depend on `@vesa-gg/core` yet.
+6. **Wire VESAWeb's Worker** to import the same package and expose the specific user-authorized actions the site needs. This is also the natural point to retire the transitional Google-Sheets league-signup path in `worker/index.js` (explicitly marked transitional in `DEPLOYMENT.md`, waiting on "the Nhost migration") — once the site can write to Nhost through properly authorized actions instead of a Sheets side-channel, that workaround goes away. **Status: not started.**
+7. **Turn on Nhost's Git integration** against the new repo (dev → `main`, prod → `release`), now that step 1 has made the migration history trustworthy. **Status: not started** — tied to step 1's now-later-planned Nhost work.
+8. **Cleanup**: remove `nhost/` from scrim-bot, remove the dead local scaffold from VESAWeb, update both repos' `CLAUDE.md`/`README.md`/`DEPLOYMENT.md` to point at the new repo as the source of truth for DB/domain logic. **Status: not started.**
 
-Steps 2–6 can happen on a branch without touching production; nothing user-facing changes until step 6 actually lands new routes, and step 7 is the only step that changes how the database itself gets deployed.
+Steps 2–6 can happen on a branch without touching production; nothing user-facing changes until step 6 actually lands new routes, and step 7 is the only step that changes how the database itself gets deployed. With step 1 now planned after step 5 instead of before it, that de-risking rationale no longer applies in the same way — worth keeping in mind when step 1 actually comes up.
 
 ---
 
