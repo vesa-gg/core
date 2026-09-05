@@ -1,5 +1,4 @@
-import { OAuth2Client } from "googleapis-common";
-import { GoogleAuth, AnyAuthClient } from "google-auth-library";
+import { GoogleAuth, JWT } from "google-auth-library";
 import { auth, sheets } from "@googleapis/sheets";
 import { SheetHelper } from "../utility/sheet-helper";
 import { DB } from "../db/db";
@@ -67,7 +66,7 @@ export class LeagueSheetRepository implements LeagueDataRepository {
     const sheetsClient = sheets({ version: "v4" });
     const request = SheetHelper.BUILD_REQUEST(
       values,
-      authClient as OAuth2Client,
+      authClient,
       this.toSheetRange(activeSeason.signupSheet),
     );
 
@@ -123,14 +122,10 @@ export class LeagueSheetRepository implements LeagueDataRepository {
 
     // tab name is derived from the division rather than subSheet.tabName, which is a single static value
     const tabName = `DIV ${teamDivision.replace("Division", "")} Log`;
-    const request = SheetHelper.BUILD_REQUEST(
-      values,
-      authClient as OAuth2Client,
-      {
-        id: activeSeason.subSheet.spreadsheetId,
-        range: `${tabName}!${activeSeason.subSheet.rangeStart}`,
-      },
-    );
+    const request = SheetHelper.BUILD_REQUEST(values, authClient, {
+      id: activeSeason.subSheet.spreadsheetId,
+      range: `${tabName}!${activeSeason.subSheet.rangeStart}`,
+    });
 
     const sheetsClient = sheets({ version: "v4" });
     const response = await sheetsClient.spreadsheets.values.append(request);
@@ -175,7 +170,7 @@ export class LeagueSheetRepository implements LeagueDataRepository {
 
     const request = SheetHelper.BUILD_REQUEST(
       values,
-      authClient as OAuth2Client,
+      authClient,
       this.toSheetRange(activeSeason.rosterChangeSheet),
     );
 
@@ -204,7 +199,7 @@ export class LeagueSheetRepository implements LeagueDataRepository {
 
     const metadata = await sheetsClient.spreadsheets.get({
       spreadsheetId,
-      auth: authClient as OAuth2Client,
+      auth: authClient,
       fields: "sheets.properties.title",
     });
 
@@ -218,7 +213,7 @@ export class LeagueSheetRepository implements LeagueDataRepository {
       const response = await sheetsClient.spreadsheets.values.get({
         spreadsheetId,
         range: `${tab}!A2:J`,
-        auth: authClient as OAuth2Client,
+        auth: authClient,
       });
 
       for (const row of response.data.values ?? []) {
@@ -266,12 +261,16 @@ export class LeagueSheetRepository implements LeagueDataRepository {
     ];
   }
 
-  private getAuthClient(): Promise<AnyAuthClient> {
+  private async getAuthClient(): Promise<JWT> {
     const googleAuth = new auth.GoogleAuth({
       keyFile: "service-account-key.json",
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     }) as unknown as GoogleAuth;
 
-    return googleAuth.getClient();
+    // getClient() is typed to return the full AnyAuthClient union because
+    // GoogleAuth also supports ADC, GCE metadata, user OAuth, workload
+    // identity federation, and GDC — but with a service-account `keyFile`
+    // it always resolves to a JWT client specifically.
+    return (await googleAuth.getClient()) as JWT;
   }
 }

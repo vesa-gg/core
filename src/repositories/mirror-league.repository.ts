@@ -1,4 +1,4 @@
-import { AlertService } from "../services/alert";
+import { AlertSink } from "../types/notifications";
 import {
   LeagueDataRepository,
   RosterChangeData,
@@ -12,7 +12,7 @@ import {
  * Mirrors every write to both a primary repository and a shadow repository concurrently.
  *
  * - Primary failure  → the error is rethrown; the command fails as normal.
- * - Shadow failure   → the error is swallowed and reported via AlertService; the command succeeds.
+ * - Shadow failure   → the error is swallowed and reported via AlertSink; the command succeeds.
  *
  * Reads (getRosterDiscordIds) are served from the primary only.
  */
@@ -20,7 +20,7 @@ export class MirrorLeagueRepository implements LeagueDataRepository {
   constructor(
     private primary: LeagueDataRepository,
     private shadow: LeagueDataRepository,
-    private alertService: AlertService,
+    private alertService: AlertSink,
   ) {}
 
   async writeSignup(data: SignupData): Promise<SignupResult | null> {

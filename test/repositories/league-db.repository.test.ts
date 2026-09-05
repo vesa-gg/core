@@ -10,7 +10,7 @@ import {
   SheetsPlayer,
   VesaDivision,
 } from "../../src/models/league-models";
-import { GuildMember } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
 import { DbMock } from "../mocks/db.mock";
 import { Player } from "../../src/models/Player";
 import { LeagueTeamPlayerInsert } from "../../src/db/table.interfaces";
@@ -273,10 +273,10 @@ describe("LeagueDbRepository", () => {
       discordId: "playerinid",
       overstatLink: undefined,
     };
-    const commandUser = {
+    const commandUser: DiscordUserRef = {
       id: "commanderid",
       displayName: "Commander",
-    } as GuildMember;
+    };
 
     const subRequestData: SubRequestData = {
       teamDivision: "Division4",
@@ -394,10 +394,10 @@ describe("LeagueDbRepository", () => {
       discordId: "playerinid",
       overstatLink: undefined,
     };
-    const commandUser = {
+    const commandUser: DiscordUserRef = {
       id: "commanderid",
       displayName: "Commander",
-    } as GuildMember;
+    };
 
     const rosterChangeData: RosterChangeData = {
       teamDivision: "Division4",

@@ -1,4 +1,3 @@
-import { OAuth2Client } from "googleapis-common";
 import { sheets_v4 } from "@googleapis/sheets";
 import Schema$UpdateValuesResponse = sheets_v4.Schema$UpdateValuesResponse;
 import Params$Resource$Spreadsheets$Values$Append = sheets_v4.Params$Resource$Spreadsheets$Values$Append;
@@ -23,7 +22,11 @@ export class SheetHelper {
 
   static BUILD_REQUEST(
     values: (string | number)[][],
-    authClient: OAuth2Client,
+    // Typed off the actual googleapis param instead of a specific auth
+    // client class — this is exactly what `auth` accepts here, so it stays
+    // correct automatically if @googleapis/sheets's accepted client types
+    // ever change, and no cast is needed at the call site.
+    authClient: Params$Resource$Spreadsheets$Values$Append["auth"],
     spreadsheetType: { id: string; range: string },
   ): Params$Resource$Spreadsheets$Values$Append {
     return {
@@ -34,7 +37,7 @@ export class SheetHelper {
       requestBody: {
         values: values,
       },
-      auth: authClient as OAuth2Client,
+      auth: authClient,
     };
   }
 }

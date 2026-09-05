@@ -71,7 +71,7 @@ export class MmrService {
     if (!response.ok) {
       throw new Error(`MMR API responded with status ${response.status}`);
     }
-    return response.json();
+    return response.json() as Promise<MmrApiResponse>;
   }
 
   private async fetchFromNhost(): Promise<MmrApiResponse> {

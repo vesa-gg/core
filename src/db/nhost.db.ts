@@ -11,10 +11,9 @@ import {
 import { ErrorPayload, NhostClient } from "@nhost/nhost-js";
 import { GraphQLError } from "graphql/error";
 import { ExpungedPlayerPrio } from "../models/Prio";
-import { appConfig } from "../config";
 import { isJson } from "../utility/utility";
 
-class NhostDb extends DB {
+export class NhostDb extends DB {
   private nhostClient: NhostClient;
 
   constructor(adminSecret: string, region: string, subdomain: string) {
@@ -656,9 +655,3 @@ class NhostDb extends DB {
     return "Db Error";
   }
 }
-
-export const nhostDb = new NhostDb(
-  appConfig.nhost.adminSecret,
-  appConfig.nhost.region,
-  appConfig.nhost.subdomain,
-);

@@ -1,6 +1,11 @@
-import { nhostDb } from "../src/db/nhost.db";
+import { NhostDb } from "../src/db/nhost.db";
 import { PlayerInsert } from "../src/models/Player";
 import { Scrims } from "../src/db/table.interfaces";
+
+// nhost.db.ts no longer exports a side-effecting singleton (consumers must
+// instantiate with their own config) — so tests construct their own instance
+// with throwaway credentials; the graphql/storage calls are mocked below.
+const nhostDb = new NhostDb("test-admin-secret", "test-region", "test-subdomain");
 
 let mockRequest: (query: string) => Promise<object> = jest.fn();
 let mockDownload: (params: {

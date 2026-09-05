@@ -11,7 +11,7 @@ import {
   SheetsPlayer,
   VesaDivision,
 } from "../../src/models/league-models";
-import { GuildMember } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
 import * as GoogleSheets from "@googleapis/sheets";
 import { GaxiosResponseWithHTTP2, GoogleAuth } from "googleapis-common";
 import { Readable } from "stream";
@@ -249,10 +249,10 @@ describe("LeagueSheetRepository", () => {
       overstatLink: undefined,
     };
 
-    const commandUser = {
+    const commandUser: DiscordUserRef = {
       displayName: "Commander",
       id: "commanderid",
-    } as GuildMember;
+    };
 
     const subRequestData: SubRequestData = {
       teamDivision: "Division4",
@@ -365,10 +365,10 @@ describe("LeagueSheetRepository", () => {
       overstatLink: undefined,
     };
 
-    const commandUser = {
+    const commandUser: DiscordUserRef = {
       displayName: "Commander",
       id: "commanderid",
-    } as GuildMember;
+    };
 
     const rosterChangeData: RosterChangeData = {
       teamDivision: "Division4",

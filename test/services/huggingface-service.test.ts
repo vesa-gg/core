@@ -9,16 +9,9 @@ jest.mock("@huggingface/hub", () => ({
   commit: jest.fn().mockResolvedValue({}),
 }));
 
-// Mock config
-jest.mock("../../src/config", () => ({
-  appConfig: {
-    huggingFaceToken: "fake-token",
-  },
-}));
-
 describe("HuggingFaceService", () => {
   it("should pass custom fetch to commit with correct timeout", async () => {
-    const service = new HuggingFaceService();
+    const service = new HuggingFaceService("fake-token");
     const mockStats = {
       total: 10,
       source: "test",

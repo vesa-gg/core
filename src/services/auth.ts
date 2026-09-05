@@ -1,5 +1,4 @@
 import { DB } from "../db/db";
-import { GuildMember } from "discord.js";
 import { DiscordRole } from "../models/Role";
 
 export class AuthService {
@@ -11,10 +10,9 @@ export class AuthService {
     });
   }
 
-  async memberIsAdmin(member: GuildMember): Promise<boolean> {
-    const memberRoleIds = member.roles.cache.map((role) => role.id);
+  async memberIsAdmin(roleIds: string[]): Promise<boolean> {
     const adminRoleSet = await this.getAdminRoleMap();
-    return this.hasAdminRole(memberRoleIds, adminRoleSet);
+    return this.hasAdminRole(roleIds, adminRoleSet);
   }
 
   async addAdminRoles(roles: DiscordRole[]): Promise<string[]> {

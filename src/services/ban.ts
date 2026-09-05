@@ -1,5 +1,5 @@
 import { DB } from "../db/db";
-import { User } from "discord.js";
+import { DiscordUserRef } from "../types/discord-ref";
 import { Scrim } from "../models/Scrims";
 import { Player } from "../models/Player";
 
@@ -7,7 +7,7 @@ export class BanService {
   constructor(private db: DB) {}
 
   async addBans(
-    usersToBan: User[],
+    usersToBan: DiscordUserRef[],
     startDate: Date,
     endDate: Date,
     reason: string,
@@ -40,7 +40,7 @@ export class BanService {
     return { hasBan: false, reason: "" };
   }
 
-  private async getPlayerIds(prioUsers: User[]): Promise<string[]> {
+  private async getPlayerIds(prioUsers: DiscordUserRef[]): Promise<string[]> {
     const insertedPlayers = await this.db.insertPlayers(
       prioUsers.map((user) => ({
         discordId: user.id,

@@ -1,27 +1,20 @@
 import { DbMock } from "../mocks/db.mock";
-import { GuildMember, User } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
+import { AlertSink } from "../../src/types/notifications";
 import { OverstatService } from "../../src/services/overstat";
 import { ScrimType, Scrim } from "../../src/models/Scrims";
 import { OverstatTournamentResponse } from "../../src/models/overstatModels";
 import SpyInstance = jest.SpyInstance;
 import { HuggingFaceService } from "../../src/services/hugging-face";
 import { ScrimService } from "../../src/services/scrim-service";
-import { AlertService } from "../../src/services/alert";
 import { provideMagickalMock } from "../mocks/magickal-mock";
-
-jest.mock("../../src/config", () => {
-  return {
-    appConfig: {
-      lobbySize: 3,
-    },
-  };
-});
 
 describe("ScrimService", () => {
   let dbMock: DbMock;
   let service: ScrimService;
   let overstatServiceMock: OverstatService;
   let mockHuggingFaceService: HuggingFaceService;
+  let alertServiceMock: jest.Mocked<AlertSink>;
 
   let insertPlayersSpy: SpyInstance;
   let huggingFaceUploadSpy: SpyInstance<
@@ -34,11 +27,15 @@ describe("ScrimService", () => {
     dbMock = new DbMock();
     overstatServiceMock = provideMagickalMock(OverstatService);
     mockHuggingFaceService = provideMagickalMock(HuggingFaceService);
+    alertServiceMock = {
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
     service = new ScrimService(
       dbMock,
       overstatServiceMock,
       mockHuggingFaceService,
-      provideMagickalMock(AlertService),
+      alertServiceMock,
     );
     insertPlayersSpy = jest.spyOn(dbMock, "insertPlayers");
     insertPlayersSpy.mockReturnValue(
@@ -69,7 +66,7 @@ describe("ScrimService", () => {
     );
   });
 
-  const theheuman = { id: "123", displayName: "TheHeuman" } as User;
+  const theheuman: DiscordUserRef = { id: "123", displayName: "TheHeuman" };
 
   describe("createScrim()", () => {
     it("Should create scrim", async () => {
@@ -375,29 +372,29 @@ describe("ScrimService", () => {
       expect(getTournamentIdSpy).not.toHaveBeenCalled();
     });
 
-    /* TODO: Update these tests to use the not yet implemented discord error reporting system 
+    /* TODO: Update these tests to use the not yet implemented discord error reporting system
         it("should throw an error if hf upload fails", async () => {
           huggingFaceUploadSpy.mockImplementationOnce(() => {
             throw Error("433 connection timeout");
           });
-    
+
           const causeException = async () => {
             await service.computeScrim(channelId, [overstatLink]);
           };
-    
+
           await expect(causeException).rejects.toThrow(
             "Completed computation, but upload to hugging face failed. Error: 433 connection timeout",
           );
           expect(updateScrimSpy).toHaveBeenCalledTimes(1);
         });
-    
+
         it("should throw an error when multiple hf uploads fails", async () => {
           const lobby2OverstatLink = "link-different";
           const lobby2OverstatId = "id-different";
-    
+
           const lobby3OverstatLink = "link-2-different";
           const lobby3OverstatId = "id-2-different";
-    
+
           huggingFaceUploadSpy.mockImplementation((sentOverstatId) => {
             if (sentOverstatId === overstatId) {
               throw Error("433 connection timeout");
@@ -409,7 +406,7 @@ describe("ScrimService", () => {
               fail();
             }
           });
-    
+
           getTournamentIdSpy.mockImplementation((link) => {
             switch (link) {
               case overstatLink:
@@ -420,7 +417,7 @@ describe("ScrimService", () => {
                 return lobby3OverstatId;
             }
           });
-    
+
           const causeException = async () => {
             await service.computeScrim(channelId, [
               overstatLink,
@@ -428,7 +425,7 @@ describe("ScrimService", () => {
               lobby3OverstatLink,
             ]);
           };
-    
+
           await expect(causeException).rejects.toThrow(
             "Scrims computed, but failed to upload stats to hugging face for the following overstat ids:\nid-different: Error: 433 connection timeout\nid-2-different: Error: File too large or something",
           );

@@ -1,5 +1,4 @@
 import { commit } from "@huggingface/hub";
-import { appConfig } from "../config";
 import { OverstatTournamentResponse } from "../models/overstatModels";
 import { Agent, fetch as undiciFetch } from "undici";
 
@@ -9,7 +8,12 @@ const dispatcher = new Agent({
   headersTimeout: 30000,
 });
 
-const customFetch = (url: URL | RequestInfo, init?: RequestInit) => {
+// Typed as `typeof fetch` (the global fetch signature `@huggingface/hub`
+// expects) rather than undici's own exported types — undici and the
+// ambient global fetch types ship their own separate `Request`/`Response`
+// declarations that don't structurally match, so pinning to undici's types
+// here caused a mismatch when this got passed to `commit()`.
+const customFetch: typeof fetch = (url, init) => {
   return undiciFetch(url as Parameters<typeof undiciFetch>[0], {
     ...(init as Parameters<typeof undiciFetch>[1] | undefined),
     dispatcher,
@@ -17,9 +21,7 @@ const customFetch = (url: URL | RequestInfo, init?: RequestInit) => {
 };
 
 export class HuggingFaceService {
-  private hfToken = appConfig.huggingFaceToken;
-
-  constructor() {}
+  constructor(private hfToken: string) {}
 
   // throws if upload fails, returns the file url on success
   async uploadOverstatJson(

@@ -1,6 +1,6 @@
 import { OverstatService } from "../../src/services/overstat";
 import { mockOverstatResponse } from "../mocks/overstat-response.mock";
-import { User } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
 import { Player } from "../../src/models/Player";
 import { DbMock } from "../mocks/db.mock";
 
@@ -73,8 +73,12 @@ describe("Overstat", () => {
   it("Should link a players overstat", async () => {
     const insertPlayerSpy = jest.spyOn(dbMock, "insertPlayerIfNotExists");
     insertPlayerSpy.mockReturnValue(Promise.resolve({ id: "db id" } as Player));
+    const discordUser: DiscordUserRef = {
+      id: "discord id",
+      displayName: "TheHeuman",
+    };
     await overstatService.addPlayerOverstatLink(
-      { id: "discord id", displayName: "TheHeuman" } as User,
+      discordUser,
       "https://overstat.gg/player/357606/overview",
     );
     expect(insertPlayerSpy).toHaveBeenCalledWith(
@@ -85,6 +89,11 @@ describe("Overstat", () => {
   });
 
   describe("Fail to link a players overstat", () => {
+    const discordUser: DiscordUserRef = {
+      id: "discord id",
+      displayName: "TheHeuman",
+    };
+
     it("Should fail because its not an valid link", async () => {
       const insertPlayerSpy = jest.spyOn(dbMock, "insertPlayerIfNotExists");
       insertPlayerSpy.mockReturnValue(
@@ -93,7 +102,7 @@ describe("Overstat", () => {
 
       const causeException = async () => {
         await overstatService.addPlayerOverstatLink(
-          { id: "discord id", displayName: "TheHeuman" } as User,
+          discordUser,
           "F5 | StabJackal",
         );
       };
@@ -109,7 +118,7 @@ describe("Overstat", () => {
 
       const causeException = async () => {
         await overstatService.addPlayerOverstatLink(
-          { id: "discord id", displayName: "TheHeuman" } as User,
+          discordUser,
           "https://google.com/player/357606/overview",
         );
       };
@@ -125,7 +134,7 @@ describe("Overstat", () => {
 
       const causeException = async () => {
         await overstatService.addPlayerOverstatLink(
-          { id: "discord id", displayName: "TheHeuman" } as User,
+          discordUser,
           "https://overstat.gg/account/overview",
         );
       };
@@ -143,7 +152,7 @@ describe("Overstat", () => {
 
       const causeException = async () => {
         await overstatService.addPlayerOverstatLink(
-          { id: "discord id", displayName: "TheHeuman" } as User,
+          discordUser,
           "https://overstat.gg/player/TheHeuman/overview",
         );
       };
@@ -167,7 +176,7 @@ describe("Overstat", () => {
     const overstatLink = await overstatService.getPlayerOverstat({
       id: "discord id",
       displayName: "TheHeuman",
-    } as User);
+    });
     expect(getPlayerSpy).toHaveBeenCalledWith("discord id");
     expect(overstatLink).toEqual("https://overstat.gg/player/357606/overview");
   });

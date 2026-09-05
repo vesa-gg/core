@@ -12,15 +12,9 @@ import {
   SheetsPlayer,
   VesaDivision,
 } from "../../src/models/league-models";
-import { GuildMember } from "discord.js";
+import { DiscordUserRef } from "../../src/types/discord-ref";
 
-jest.mock("../../src/config", () => ({
-  appConfig: {
-    discord: { token: "token", guildId: { scrim: "scrim", league: "league" } },
-  },
-}));
-
-// Minimal AlertService stub — only the methods MirrorLeagueRepository calls
+// Minimal AlertSink stub — only the methods MirrorLeagueRepository calls
 const makeAlertService = () => ({
   error: jest.fn().mockResolvedValue(undefined),
   warn: jest.fn().mockResolvedValue(undefined),
@@ -53,6 +47,7 @@ const makeSubRequestData = (): SubRequestData => {
     discordId: "discord-1",
     overstatLink: undefined,
   };
+  const commandUser: DiscordUserRef = { id: "staff-id", displayName: "Staff" };
   return {
     teamDivision: "Division 1",
     teamName: "Team Alpha",
@@ -60,7 +55,7 @@ const makeSubRequestData = (): SubRequestData => {
     playerOut: player,
     playerIn: { ...player, discordId: "discord-2" },
     playerInDivision: "Division 2",
-    commandUser: { id: "staff-id", displayName: "Staff" } as GuildMember,
+    commandUser,
     additionalComments: "",
   };
 };
@@ -71,12 +66,13 @@ const makeRosterChangeData = (): RosterChangeData => {
     discordId: "discord-1",
     overstatLink: undefined,
   };
+  const commandUser: DiscordUserRef = { id: "staff-id", displayName: "Staff" };
   return {
     teamDivision: "Division 1",
     teamName: "Team Alpha",
     playerOut: player,
     playerIn: { ...player, discordId: "discord-2" },
-    commandUser: { id: "staff-id", displayName: "Staff" } as GuildMember,
+    commandUser,
     additionalComments: "",
   };
 };

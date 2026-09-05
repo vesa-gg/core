@@ -1,20 +1,20 @@
 import { DB } from "../db/db";
-import { User } from "discord.js";
+import { DiscordUserRef } from "../types/discord-ref";
 import { Scrim, ScrimSignup, ScrimType } from "../models/Scrims";
 import { ExpungedPlayerPrio, PlayerMap, PlayerPrio } from "../models/Prio";
 import { Player } from "../models/Player";
 import { LeagueService } from "./league";
-import { AlertService } from "./alert";
+import { AlertSink } from "../types/notifications";
 
 export class PrioService {
   constructor(
     private db: DB,
     private leagueService: LeagueService,
-    private alertService: AlertService,
+    private alertService: AlertSink,
   ) {}
 
   async setPlayerPrio(
-    prioUsers: User[],
+    prioUsers: DiscordUserRef[],
     startDate: Date,
     endDate: Date,
     amount: number,
@@ -81,7 +81,7 @@ export class PrioService {
     return teams;
   }
 
-  private async getPlayerIds(prioUsers: User[]): Promise<string[]> {
+  private async getPlayerIds(prioUsers: DiscordUserRef[]): Promise<string[]> {
     const insertedPlayers = await this.db.insertPlayers(
       prioUsers.map((user) => ({
         discordId: user.id,

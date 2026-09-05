@@ -1,5 +1,9 @@
 export type JSONValue =
-  string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
+  | string
+  | number
+  | boolean
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>;
 
 export type DbValue = string | number | boolean | Date | JSON | null;
 export type Comparator = "eq" | "gte" | "lte" | "gt" | "lt";

@@ -1,4 +1,4 @@
-import { GuildMember } from "discord.js";
+import { DiscordUserRef } from "../types/discord-ref";
 import { LeaguePlayer, SheetsPlayer } from "../models/league-models";
 import {
   LeagueDataRepository,
@@ -41,7 +41,7 @@ export class LeagueService {
     playerOut: LeaguePlayer,
     playerIn: LeaguePlayer,
     playerInDivision: string,
-    commandUser: GuildMember,
+    commandUser: DiscordUserRef,
     additionalComments: string,
   ): Promise<{
     rowNumber: number | null;
@@ -70,7 +70,7 @@ export class LeagueService {
     teamName: string,
     playerOut: LeaguePlayer,
     playerIn: LeaguePlayer,
-    commandUser: GuildMember,
+    commandUser: DiscordUserRef,
     additionalComments: string,
   ): Promise<{
     rowNumber: number | null;
